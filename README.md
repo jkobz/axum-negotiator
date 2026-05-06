@@ -1,0 +1,20 @@
+<a href="https://crates.io/crates/tower-cache-control">
+    <img src="https://img.shields.io/crates/v/tower-cache-control.svg" />
+</a>
+<hr />
+
+*Tower* layer that simplifies setting `Cache-Control` response header, featuring:
+- Opinionated `Cache-Control` value based on the response status
+- Customizable default value
+
+---
+
+### Usage
+
+```toml
+[dependencies]
+tower-cache-control = "1.1.0"
+```
+
+Layer `CacheControlLayer` comes with a default value (via `Default` trait),
+although it supports a custom `CacheControl` setting (via `axum-extra` crate re-export).

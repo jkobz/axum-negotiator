@@ -1,0 +1,21 @@
+[package]
+name = "tower-content-negotiation"
+description = "Tower response content negotiation middleware"
+repository = "https://github.com/jkobz/tower-content-negotiation"
+readme = "README.md"
+keywords = ["tower"]
+categories = ["web-programming"]
+authors = ["Eugene Kobzev <jenyakobzev@gmail.com>"]
+edition = "2024"
+version = "1.0.0"
+license = "MIT"
+
+[dependencies]
+futures = "0.3.32"
+http = "1.4.0"
+tower-layer = "0.3.3"
+tower-service = "0.3.3"
+mime = "0.3.17"
+headers = "0.4.1"
+axum-core = "0.5.6"
+axum-extra = { version = "0.12.6", features = ["typed-header"] }
