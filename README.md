@@ -1,11 +1,11 @@
-<a href="https://crates.io/crates/tower-cache-control">
-    <img src="https://img.shields.io/crates/v/tower-cache-control.svg" />
+<a href="https://crates.io/crates/tower-content-negotiation">
+    <img src="https://img.shields.io/crates/v/tower-content-negotiation.svg" />
 </a>
-<hr />
 
-*Tower* layer that simplifies setting `Cache-Control` response header, featuring:
-- Opinionated `Cache-Control` value based on the response status
-- Customizable default value
+Content-negotiation utilities. Provides [Negotiate] trait and *Tower*-compatible
+[Layer] and [Service] that guarantee an **HTTP** response to be serialized with
+respect to the *valid* *accepted* **media-type**. Exposes content-negotiation
+headers via [header], **media-type** via [media].
 
 ---
 
@@ -13,8 +13,5 @@
 
 ```toml
 [dependencies]
-tower-cache-control = "1.1.0"
+tower-content-negotiation = "1.0.0"
 ```
-
-Layer `CacheControlLayer` comes with a default value (via `Default` trait),
-although it supports a custom `CacheControl` setting (via `axum-extra` crate re-export).

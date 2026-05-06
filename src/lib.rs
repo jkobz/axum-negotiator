@@ -20,7 +20,7 @@ use futures::future::{BoxFuture, TryFutureExt};
 /// Provides [into_response] method to turn `self`
 /// into [Response] via *generic* `media` **media-type**.
 ///
-/// Provides *blanket* impl for items implementing [header::Status].
+/// Provides *blanket* impl for [header::Status] implementors.
 pub trait Negotiate<M> {
     fn into_response(&self, media: &M) -> Response;
 }
