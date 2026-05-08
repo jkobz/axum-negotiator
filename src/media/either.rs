@@ -4,7 +4,8 @@ use axum::extract::Request;
 use axum::response::{IntoResponse, Response};
 use futures::TryFutureExt;
 
-use crate::{Rejection, media, payload};
+use super::{Rejection, Stateful, Supported, Type};
+use crate::payload;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Either<M, N> {
@@ -12,14 +13,20 @@ pub enum Either<M, N> {
     Second(N),
 }
 
-impl<'a, M, N> TryFrom<&'a media::Type> for Either<M, N>
+impl<M: Default, N> Default for Either<M, N> {
+    fn default() -> Self {
+        Either::First(M::default())
+    }
+}
+
+impl<'a, M, N> TryFrom<&'a Type> for Either<M, N>
 where
-    M: TryFrom<&'a media::Type> + media::Supported,
-    N: TryFrom<&'a media::Type> + media::Supported,
+    M: TryFrom<&'a Type> + Supported,
+    N: TryFrom<&'a Type> + Supported,
 {
     type Error = Rejection<Self>;
 
-    fn try_from(value: &'a media::Type) -> Result<Self, Self::Error> {
+    fn try_from(value: &'a Type) -> Result<Self, Self::Error> {
         M::try_from(value)
             .map(Either::First)
             .or_else(|_| N::try_from(value).map(Either::Second))
@@ -27,10 +34,10 @@ where
     }
 }
 
-impl<M, N, D> media::Stateful<D> for Either<M, N>
+impl<M, N, D> Stateful<D> for Either<M, N>
 where
-    M: media::Stateful<D>,
-    N: media::Stateful<D>,
+    M: Stateful<D>,
+    N: Stateful<D>,
 {
     #[allow(refining_impl_trait)]
     fn with(&self, data: &D) -> Response {
@@ -69,12 +76,12 @@ where
     }
 }
 
-impl<M, N> media::Supported for Either<M, N>
+impl<M, N> Supported for Either<M, N>
 where
-    M: media::Supported,
-    N: media::Supported,
+    M: Supported,
+    N: Supported,
 {
-    fn supported() -> Vec<media::Type> {
+    fn supported() -> Vec<Type> {
         let mut supported = M::supported();
         let mut other = N::supported();
         supported.append(&mut other);

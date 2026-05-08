@@ -1,6 +1,5 @@
 #![doc = include_str!("../README.md")]
 
-pub mod error;
 pub mod header;
 pub mod media;
 mod payload;
@@ -13,7 +12,6 @@ use axum::RequestExt;
 use axum::extract::{FromRequestParts, Request};
 use axum::response::{IntoResponse, Response};
 use axum_extra::either::Either;
-pub use error::Rejection;
 use futures::future::{BoxFuture, TryFutureExt};
 pub use payload::Payload;
 
@@ -157,12 +155,12 @@ where
     I::Response: Send + Negotiate<M>,
     I::Error: Send + Negotiate<M>,
     M: media::Stateful<I::Response> + Send + Sync + 'static,
-    media::Extractor<M, E, X>: FromRequestParts<()> + Send + Sync + 'static,
+    media::Extractor<M, E, X>: FromRequestParts<(), Rejection = media::extract::Rejection<E, X>>
+        + Send
+        + Sync
+        + 'static,
 {
-    type Error = Either<
-        I::Error,
-        <media::Extractor<M, E, X> as FromRequestParts<()>>::Rejection,
-    >;
+    type Error = Either<I::Error, media::extract::Rejection<E, X>>;
     type Future = BoxFuture<'static, Result<Response, Self::Error>>;
     type Response = Response;
 
@@ -202,13 +200,13 @@ where
     I::Response: Send + Negotiate<M>,
     I::Error: Send + Negotiate<F>,
     M: media::Stateful<I::Response> + Send + Sync + 'static,
-    media::Extractor<M, E, X>: FromRequestParts<()> + Send + Sync + 'static,
+    media::Extractor<M, E, X>: FromRequestParts<(), Rejection = media::extract::Rejection<E, X>>
+        + Send
+        + Sync
+        + 'static,
     F: Clone + Send + Sync + 'static,
 {
-    type Error = Either<
-        I::Error,
-        <media::Extractor<M, E, X> as FromRequestParts<()>>::Rejection,
-    >;
+    type Error = Either<I::Error, media::extract::Rejection<E, X>>;
     type Future = BoxFuture<'static, Result<Response, Self::Error>>;
     type Response = Response;
 

@@ -49,6 +49,12 @@ impl From<media::Type> for Accept {
     }
 }
 
+impl From<Accept> for media::Type {
+    fn from(value: Accept) -> Self {
+        value.0
+    }
+}
+
 impl Deref for Accept {
     type Target = media::Type;
 

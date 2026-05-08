@@ -7,20 +7,20 @@ use futures::TryFutureExt;
 use mime::APPLICATION_JSON;
 use serde::{Deserialize, Serialize};
 
-use crate::{Rejection, media, payload};
+use crate::{media, payload};
 
 /// `application/json` media-type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Json;
 
 impl TryFrom<&media::Type> for Json {
-    type Error = Rejection<Self>;
+    type Error = media::Rejection<Self>;
 
     fn try_from(value: &media::Type) -> Result<Self, Self::Error> {
         if value == &APPLICATION_JSON {
             Ok(Self)
         } else {
-            Err(Rejection::new(value))
+            Err(media::Rejection::new(value))
         }
     }
 }

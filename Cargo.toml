@@ -1,9 +1,9 @@
 [package]
-name = "tower-content-negotiation"
-description = "Tower response content negotiation middleware"
-repository = "https://github.com/jkobz/tower-content-negotiation"
+name = "axum-content-negotiation"
+description = "Axum content-negotiation utilities"
+repository = "https://github.com/jkobz/axum-content-negotiation"
 readme = "README.md"
-keywords = ["tower"]
+keywords = ["axum", "http", "mime", "content-type", "negotiation"]
 categories = ["web-programming"]
 authors = ["Eugene Kobzev <jenyakobzev@gmail.com>"]
 edition = "2024"

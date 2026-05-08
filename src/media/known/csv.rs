@@ -7,10 +7,10 @@ use axum::response::IntoResponse;
 use mime::{TEXT_CSV, TEXT_HTML};
 
 use super::Html;
-use crate::{Rejection, media};
+use crate::media;
 
 /// `text/csv` **media-type**.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Csv;
 
 /// Provides [filename] method.
@@ -20,7 +20,7 @@ pub trait Named {
 }
 
 impl TryFrom<&media::Type> for Csv {
-    type Error = Rejection<Self>;
+    type Error = media::Rejection<Self>;
 
     fn try_from(value: &media::Type) -> Result<Self, Self::Error> {
         if value == &TEXT_CSV {
@@ -30,7 +30,7 @@ impl TryFrom<&media::Type> for Csv {
         } else if value == &media::Type::default() {
             Ok(Self)
         } else {
-            Err(Rejection::new(value))
+            Err(media::Rejection::new(value))
         }
     }
 }

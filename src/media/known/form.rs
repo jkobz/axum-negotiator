@@ -6,20 +6,20 @@ use futures::TryFutureExt;
 use mime::APPLICATION_WWW_FORM_URLENCODED;
 use serde::Deserialize;
 
-use crate::{Rejection, media, payload};
+use crate::{media, payload};
 
 /// `application/x-www-form-urlencoded` **media-type**.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Form;
 
 impl TryFrom<&media::Type> for Form {
-    type Error = Rejection<Self>;
+    type Error = media::Rejection<Self>;
 
     fn try_from(value: &media::Type) -> Result<Self, Self::Error> {
         if value == &APPLICATION_WWW_FORM_URLENCODED {
             Ok(Self)
         } else {
-            Err(Rejection::new(value))
+            Err(media::Rejection::new(value))
         }
     }
 }

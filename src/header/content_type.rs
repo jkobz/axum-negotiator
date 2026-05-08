@@ -23,6 +23,12 @@ impl From<media::Type> for ContentType {
     }
 }
 
+impl From<ContentType> for media::Type {
+    fn from(value: ContentType) -> Self {
+        value.0
+    }
+}
+
 impl Deref for ContentType {
     type Target = media::Type;
 

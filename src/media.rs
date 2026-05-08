@@ -1,7 +1,8 @@
 //! Provides **media-type** via [Type].
 
 mod either;
-mod extract;
+mod error;
+pub mod extract;
 mod known;
 
 use std::fmt;
@@ -10,10 +11,12 @@ use std::str::FromStr;
 
 use axum::response::IntoResponse;
 pub use either::Either;
+pub use error::Rejection;
 pub use extract::Extractor;
 pub use known::csv::{self, Csv};
 pub use known::{Form, Html, Json};
 use mime::{Mime, STAR_STAR};
+
 
 /// Turns an arbitrary `data` into an [IntoResponse]
 /// implementation via `with` method.

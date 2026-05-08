@@ -3,18 +3,14 @@
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-use std::str::FromStr;
 
 use axum::RequestExt;
 use axum::extract::{FromRequest, FromRequestParts, Request};
-use axum::http::header::CONTENT_TYPE;
 use axum::response::IntoResponse;
 use axum_extra::either::Either;
-use axum_extra::extract;
 use futures::TryFutureExt;
-use serde::Deserialize;
 
-use crate::{Rejection, header, media};
+use crate::{header, media};
 
 /// # *Generic* **HTTP** request **body** payload.
 ///
@@ -88,21 +84,19 @@ impl<S, T, M, E, X> FromRequest<S> for Payload<T, M, E, X>
 where
     S: Send + Sync,
     T: Send + 'static,
-    media::Extractor<M, E, X, header::ContentType>:
-        FromRequestParts<()> + Send + Sync,
     M: Extract<T> + media::Supported + Send + Sync + 'static,
-    E: From<Rejection<M>> + IntoResponse + 'static,
+    E: From<media::Rejection<M>> + IntoResponse + 'static,
     X: From<<header::ContentType as FromRequestParts<()>>::Rejection>
         + IntoResponse
         + 'static,
+    media::Extractor<M, E, X, header::ContentType>: FromRequestParts<(), Rejection = media::extract::Rejection<E, X>>
+        + Send
+        + Sync
+        + 'static,
     <M as Extract<T>>::Rejection: IntoResponse,
 {
-    type Rejection = Either<
-        <media::Extractor<M, E, X, header::ContentType> as FromRequestParts<
-            (),
-        >>::Rejection,
-        <M as Extract<T>>::Rejection,
-    >;
+    type Rejection =
+        Either<media::extract::Rejection<E, X>, <M as Extract<T>>::Rejection>;
 
     async fn from_request(
         mut req: Request,

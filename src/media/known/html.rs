@@ -5,14 +5,14 @@ use askama_web::WebTemplateExt;
 use axum::response::IntoResponse;
 use mime::TEXT_HTML;
 
-use crate::{Rejection, media};
+use crate::media;
 
 /// `text/html` **media-type**.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Html;
 
 impl TryFrom<&media::Type> for Html {
-    type Error = Rejection<Self>;
+    type Error = media::Rejection<Self>;
 
     fn try_from(value: &media::Type) -> Result<Self, Self::Error> {
         if value == &TEXT_HTML {
@@ -20,7 +20,7 @@ impl TryFrom<&media::Type> for Html {
         } else if value == &media::Type::default() {
             Ok(Self)
         } else {
-            Err(Rejection::new(value))
+            Err(media::Rejection::new(value))
         }
     }
 }
