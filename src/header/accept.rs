@@ -6,12 +6,12 @@ use std::iter::once;
 use std::ops::Deref;
 use std::str::FromStr;
 
-use axum_core::extract::FromRequestParts;
+use axum::extract::FromRequestParts;
+use axum::http::header::{ACCEPT, HeaderName, HeaderValue};
+use axum::http::request::Parts;
 use axum_extra::headers::{Error, Header};
 use axum_extra::typed_header::{TypedHeader, TypedHeaderRejection};
 use futures::TryFutureExt;
-use http::header::{ACCEPT, HeaderName, HeaderValue};
-use http::request::Parts;
 use mime::STAR_STAR;
 
 use crate::media;
@@ -89,10 +89,10 @@ impl Header for Accept {
     where
         E: Extend<HeaderValue>,
     {
-        let value = self.0.to_string();
-        let header = HeaderValue::from_str(&value).unwrap_or_else(|_| {
-            HeaderValue::from_static(STAR_STAR.essence_str())
-        });
+        let header =
+            HeaderValue::from_str(self.as_ref()).unwrap_or_else(|_| {
+                HeaderValue::from_static(STAR_STAR.essence_str())
+            });
         values.extend(once(header));
     }
 }

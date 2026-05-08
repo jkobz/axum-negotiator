@@ -1,38 +1,44 @@
 //! Provides [Form] **media-type**.
 
-use mime::{APPLICATION_JSON, APPLICATION_WWW_FORM_URLENCODED};
+use axum::RequestExt;
+use axum::extract::Request;
+use futures::TryFutureExt;
+use mime::APPLICATION_WWW_FORM_URLENCODED;
+use serde::Deserialize;
 
-use crate::{Rejection, media};
+use crate::{Rejection, media, payload};
 
-/// **Media-types** associated with *form* submission.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum Form {
-    /// `application/x-www-form-urlencoded`
-    #[default]
-    Urlencoded,
-    /// `application/json`
-    Json,
-}
+/// `application/x-www-form-urlencoded` **media-type**.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Form;
 
-impl TryFrom<media::Type> for Form {
+impl TryFrom<&media::Type> for Form {
     type Error = Rejection<Self>;
 
-    fn try_from(value: media::Type) -> Result<Self, Self::Error> {
-        if value == APPLICATION_JSON {
-            Ok(Self::Json)
-        } else if value == APPLICATION_WWW_FORM_URLENCODED {
-            Ok(Self::Urlencoded)
+    fn try_from(value: &media::Type) -> Result<Self, Self::Error> {
+        if value == &APPLICATION_WWW_FORM_URLENCODED {
+            Ok(Self)
         } else {
             Err(Rejection::new(value))
         }
     }
 }
 
+impl<T> payload::Extract<T> for Form
+where
+    T: for<'a> Deserialize<'a> + 'static,
+{
+    type Rejection = axum_extra::extract::FormRejection;
+
+    async fn extract(&self, req: Request) -> Result<T, Self::Rejection> {
+        req.extract::<axum_extra::extract::Form<T>, _>()
+            .map_ok(|f| f.0)
+            .await
+    }
+}
+
 impl media::Supported for Form {
     fn supported() -> Vec<media::Type> {
-        vec![
-            APPLICATION_JSON.into(),
-            APPLICATION_WWW_FORM_URLENCODED.into(),
-        ]
+        vec![APPLICATION_WWW_FORM_URLENCODED.into()]
     }
 }

@@ -1,5 +1,5 @@
-<a href="https://crates.io/crates/tower-content-negotiation">
-    <img src="https://img.shields.io/crates/v/tower-content-negotiation.svg" />
+<a href="https://crates.io/crates/axum-content-negotiation">
+    <img src="https://img.shields.io/crates/v/axum-content-negotiation.svg" />
 </a>
 
 Content-negotiation utilities. Provides [Negotiate] trait and *Tower*-compatible
@@ -13,5 +13,5 @@ headers via [header], **media-type** via [media].
 
 ```toml
 [dependencies]
-tower-content-negotiation = "1.0.0"
+axum-content-negotiation = "1.0.0"
 ```

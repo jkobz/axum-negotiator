@@ -3,17 +3,19 @@
 pub mod error;
 pub mod header;
 pub mod media;
+mod payload;
 
 use std::marker::PhantomData;
 use std::mem;
 use std::task::{Context, Poll};
 
-use axum_core::RequestExt;
-use axum_core::extract::{FromRequestParts, Request};
-use axum_core::response::{IntoResponse, Response};
+use axum::RequestExt;
+use axum::extract::{FromRequestParts, Request};
+use axum::response::{IntoResponse, Response};
 use axum_extra::either::Either;
 pub use error::Rejection;
 use futures::future::{BoxFuture, TryFutureExt};
+pub use payload::Payload;
 
 /// # Content-Negotiation trait.
 ///
@@ -39,10 +41,11 @@ where
 ///
 /// See [Service].
 #[derive(Clone)]
-pub struct Layer<M, E, S> {
+pub struct Layer<M, E, X, S> {
     state: S,
     supported_media: PhantomData<M>,
-    error: PhantomData<E>,
+    conversion_error: PhantomData<E>,
+    extraction_error: PhantomData<X>,
 }
 
 /// # Fallback-state.
@@ -54,47 +57,40 @@ pub struct WithFallback<F> {
     fallback: F,
 }
 
-impl<M, E> Layer<M, E, ()> {
+impl<M, E, X> Layer<M, E, X, ()> {
     pub fn new() -> Self {
         Self {
             state: (),
             supported_media: PhantomData,
-            error: PhantomData,
+            conversion_error: PhantomData,
+            extraction_error: PhantomData,
         }
     }
 }
 
-impl<M, E, F> Layer<M, E, WithFallback<F>> {
+impl<M, E, X, F> Layer<M, E, X, WithFallback<F>> {
     pub fn with_fallback(fallback: F) -> Self {
         Self {
             state: WithFallback { fallback },
             supported_media: PhantomData,
-            error: PhantomData,
+            conversion_error: PhantomData,
+            extraction_error: PhantomData,
         }
     }
 }
 
-impl<M, E, F> Default for Layer<M, E, WithFallback<F>>
-where
-    F: Default,
-{
+impl<M, E, X, F: Default> Default for Layer<M, E, X, WithFallback<F>> {
     fn default() -> Self {
-        Self {
-            state: WithFallback {
-                fallback: F::default(),
-            },
-            supported_media: PhantomData,
-            error: PhantomData,
-        }
+        Self::with_fallback(F::default())
     }
 }
 
-impl<I, M, E, S> tower_layer::Layer<I> for Layer<M, E, S>
+impl<I, M, E, X, S> tower_layer::Layer<I> for Layer<M, E, X, S>
 where
     I: Clone + Send + Sync,
     S: Clone,
 {
-    type Service = Service<I, M, E, S>;
+    type Service = Service<I, M, E, X, S>;
 
     fn layer(&self, inner: I) -> Self::Service {
         Service::new(inner, &self.state)
@@ -108,12 +104,12 @@ where
 /// [Result] value to the *accepted* **media-type**.
 ///
 /// Validates whether the **media-type** is `supported_media`,
-/// throws `error` otherwise.
+/// throws `conversion_error` otherwise.
 ///
 /// Content-negotiates response [Result] value via [Negotiate],
 /// erasing both [Result::Ok] and [Result::Err] types.
 #[derive(Clone)]
-pub struct Service<I, M, E, S> {
+pub struct Service<I, M, E, X, S> {
     /// Arbitrary state.
     state: S,
 
@@ -128,27 +124,32 @@ pub struct Service<I, M, E, S> {
     /// ```
     supported_media: PhantomData<M>,
 
-    /// # Error type.
+    /// # Conversion error wrapper.
     ///
-    /// Indicates what [Rejection] should be coerced to.
-    error: PhantomData<E>,
+    /// Used to handle **media-type** conversion error
+    /// i.e. a supplied **MIME** is not `supported_media`.
+    conversion_error: PhantomData<E>,
+
+    /// # Extraction error wrapper.
+    ///
+    /// Used to handle **media-type** extraction error
+    /// in case of [media::Extractor] rejection.
+    extraction_error: PhantomData<X>,
 }
 
-impl<I, M, E, S> Service<I, M, E, S>
-where
-    S: Clone,
-{
+impl<I, M, E, X, S: Clone> Service<I, M, E, X, S> {
     pub fn new(inner: I, state: &S) -> Self {
         Self {
             state: state.clone(),
             inner,
             supported_media: PhantomData,
-            error: PhantomData,
+            conversion_error: PhantomData,
+            extraction_error: PhantomData,
         }
     }
 }
 
-impl<R, I, M, E> tower_service::Service<R> for Service<I, M, E, ()>
+impl<R, I, M, E, X> tower_service::Service<R> for Service<I, M, E, X, ()>
 where
     R: Into<Request> + Send + 'static,
     I: tower_service::Service<Request> + Send + Sync + Clone + 'static,
@@ -156,10 +157,12 @@ where
     I::Response: Send + Negotiate<M>,
     I::Error: Send + Negotiate<M>,
     M: media::Stateful<I::Response> + Send + Sync + 'static,
-    media::Extractor<M, E>:
-        FromRequestParts<(), Rejection = E> + Send + Sync + 'static,
+    media::Extractor<M, E, X>: FromRequestParts<()> + Send + Sync + 'static,
 {
-    type Error = Either<I::Error, E>;
+    type Error = Either<
+        I::Error,
+        <media::Extractor<M, E, X> as FromRequestParts<()>>::Rejection,
+    >;
     type Future = BoxFuture<'static, Result<Response, Self::Error>>;
     type Response = Response;
 
@@ -176,7 +179,7 @@ where
         let mut req = req.into();
         Box::pin(async move {
             let media = req
-                .extract_parts::<media::Extractor<M, E>>()
+                .extract_parts::<media::Extractor<M, E, X>>()
                 .map_err(Either::E2)
                 .await?;
             inner
@@ -190,8 +193,8 @@ where
     }
 }
 
-impl<R, I, M, E, F> tower_service::Service<R>
-    for Service<I, M, E, WithFallback<F>>
+impl<R, I, M, E, X, F> tower_service::Service<R>
+    for Service<I, M, E, X, WithFallback<F>>
 where
     R: Into<Request> + Send + 'static,
     I: tower_service::Service<Request> + Send + Clone + 'static,
@@ -199,11 +202,13 @@ where
     I::Response: Send + Negotiate<M>,
     I::Error: Send + Negotiate<F>,
     M: media::Stateful<I::Response> + Send + Sync + 'static,
-    media::Extractor<M, E>:
-        FromRequestParts<(), Rejection = E> + Send + Sync + 'static,
+    media::Extractor<M, E, X>: FromRequestParts<()> + Send + Sync + 'static,
     F: Clone + Send + Sync + 'static,
 {
-    type Error = Either<I::Error, E>;
+    type Error = Either<
+        I::Error,
+        <media::Extractor<M, E, X> as FromRequestParts<()>>::Rejection,
+    >;
     type Future = BoxFuture<'static, Result<Response, Self::Error>>;
     type Response = Response;
 
@@ -221,7 +226,7 @@ where
         let mut req = req.into();
         Box::pin(async move {
             let media = req
-                .extract_parts::<media::Extractor<M, E>>()
+                .extract_parts::<media::Extractor<M, E, X>>()
                 .map_err(Either::E2)
                 .await?;
             inner

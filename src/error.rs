@@ -16,9 +16,9 @@ impl<M> Rejection<M>
 where
     M: media::Supported,
 {
-    pub fn new(media: media::Type) -> Self {
+    pub fn new(media: &media::Type) -> Self {
         Self {
-            media,
+            media: media.clone(),
             supported_media: PhantomData,
         }
     }

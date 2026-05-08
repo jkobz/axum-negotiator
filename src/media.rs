@@ -1,15 +1,18 @@
 //! Provides **media-type** via [Type].
 
+mod either;
 mod extract;
 mod known;
 
 use std::fmt;
+use std::ops::Deref;
 use std::str::FromStr;
 
-use axum_core::response::IntoResponse;
+use axum::response::IntoResponse;
+pub use either::Either;
 pub use extract::Extractor;
 pub use known::csv::{self, Csv};
-pub use known::{Form, Html};
+pub use known::{Form, Html, Json};
 use mime::{Mime, STAR_STAR};
 
 /// Turns an arbitrary `data` into an [IntoResponse]
@@ -36,6 +39,14 @@ impl Default for Type {
 impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl Deref for Type {
+    type Target = Mime;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

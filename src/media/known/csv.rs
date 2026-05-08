@@ -1,14 +1,16 @@
 //! Provides [Csv] **media-type**, [Named] trait.
 
-use axum_core::response::IntoResponse;
-use http::header::{CONTENT_DISPOSITION, CONTENT_TYPE, HeaderMap, HeaderValue};
+use axum::http::header::{
+    CONTENT_DISPOSITION, CONTENT_TYPE, HeaderMap, HeaderValue,
+};
+use axum::response::IntoResponse;
 use mime::{TEXT_CSV, TEXT_HTML};
 
 use super::Html;
 use crate::{Rejection, media};
 
 /// `text/csv` **media-type**.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Csv;
 
 /// Provides [filename] method.
@@ -17,15 +19,15 @@ pub trait Named {
     fn filename(&self) -> &str;
 }
 
-impl TryFrom<media::Type> for Csv {
+impl TryFrom<&media::Type> for Csv {
     type Error = Rejection<Self>;
 
-    fn try_from(value: media::Type) -> Result<Self, Self::Error> {
-        if value == TEXT_CSV {
+    fn try_from(value: &media::Type) -> Result<Self, Self::Error> {
+        if value == &TEXT_CSV {
             Ok(Self)
-        } else if value == TEXT_HTML {
+        } else if value == &TEXT_HTML {
             Ok(Self)
-        } else if value == media::Type::default() {
+        } else if value == &media::Type::default() {
             Ok(Self)
         } else {
             Err(Rejection::new(value))

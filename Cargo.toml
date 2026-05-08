@@ -13,11 +13,10 @@ license = "MIT"
 [dependencies]
 askama = "0.14"
 askama_web = { version = "0.14", features = ["axum-0.8"] }
+axum = { version = "0.8.9", featurs = ["json"] }
+axum-extra = { version = "0.12.6", features = ["typed-header", "form"] }
 futures = "0.3.32"
-http = "1.4.0"
+mime = "0.3.17"
+serde = "1.0.228"
 tower-layer = "0.3.3"
 tower-service = "0.3.3"
-mime = "0.3.17"
-headers = "0.4.1"
-axum-core = "0.5.6"
-axum-extra = { version = "0.12.6", features = ["typed-header"] }
