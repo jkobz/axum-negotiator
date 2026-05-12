@@ -113,7 +113,7 @@ where
     }
 }
 
-/// Provides [extract] method to consume the **HTTP** request
+/// Provides [Extract::extract] method to consume the **HTTP** request
 /// into an arbitrary `T` value, given the implementor **media-type**.
 pub trait Extract<T> {
     type Rejection;

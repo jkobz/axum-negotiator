@@ -1,12 +1,13 @@
-//! Provides [Status] trait, and [Accept] **HTTP** request header.
+//! Provides [Status] trait, and [Accept] and [ContentType] **HTTP** headers.
 
 mod accept;
 mod content_type;
 
 pub use accept::Accept;
+use axum::http::StatusCode;
 pub use content_type::ContentType;
 
-/// Provides `status` to populate [http::StatusCode].
+/// Provides `status` to populate [StatusCode].
 pub trait Status {
-    fn status(&self) -> axum::http::StatusCode;
+    fn status(&self) -> StatusCode;
 }

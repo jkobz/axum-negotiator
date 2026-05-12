@@ -13,7 +13,7 @@ use crate::media;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Csv;
 
-/// Provides [filename] method.
+/// Provides [Named::filename] method.
 pub trait Named {
     /// **CSV** filename.
     fn filename(&self) -> &str;

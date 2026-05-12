@@ -7,7 +7,7 @@ keywords = ["axum", "http", "mime", "content-type", "negotiation"]
 categories = ["web-programming"]
 authors = ["Eugene Kobzev <jenyakobzev@gmail.com>"]
 edition = "2024"
-version = "1.0.0"
+version = "1.0.1"
 license = "MIT"
 
 [dependencies]

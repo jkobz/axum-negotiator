@@ -4,11 +4,6 @@
 
 # **Content-negotiation** utilities.
 
-```toml
-[dependencies]
-:cn
-```
-
 ## Motivation
 
 Backend services often are required to support multiple representations of the same data
@@ -25,7 +20,7 @@ and *tight coupling* between business-logic and **content-negotiation** strategy
 ## Abstraction model
 
 - [Negotiate] serializes response, given the **media-type** context
-- [Stateful] converts *content-negotiated* value into output
+- [media::Stateful] converts *content-negotiated* value into output
 - [media::Either] resolves branching negotiation
 - [Payload] simplifies request-side negotiation
 - [Layer] enforcement boundary

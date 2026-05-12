@@ -2,7 +2,7 @@
 
 pub mod header;
 pub mod media;
-mod payload;
+pub mod payload;
 
 use std::marker::PhantomData;
 use std::mem;
@@ -17,7 +17,7 @@ pub use payload::Payload;
 
 /// # Content-negotiation trait.
 ///
-/// Provides [into_response] method to turn `self`
+/// Provides [Negotiate::into_response] method to turn `self`
 /// into [Response] via *generic* `media` **media-type**.
 ///
 /// Provides *blanket* impl for [header::Status] implementors.
