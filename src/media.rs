@@ -17,7 +17,6 @@ pub use known::csv::{self, Csv};
 pub use known::{Form, Html, Json};
 use mime::{Mime, STAR_STAR};
 
-
 /// Turns an arbitrary `data` into an [IntoResponse]
 /// implementation via `with` method.
 pub trait Stateful<D> {

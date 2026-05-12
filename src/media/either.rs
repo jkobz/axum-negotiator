@@ -3,14 +3,44 @@
 use axum::extract::Request;
 use axum::response::{IntoResponse, Response};
 use futures::TryFutureExt;
+use serde::{Serialize, Serializer};
 
 use super::{Rejection, Stateful, Supported, Type};
-use crate::payload;
+use crate::{Negotiate, payload};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Either<M, N> {
     First(M),
     Second(N),
+}
+
+impl<M, A, B> Negotiate<M> for Either<A, B>
+where
+    A: Negotiate<M>,
+    B: Negotiate<M>,
+{
+    fn into_response(&self, media: &M) -> Response {
+        match self {
+            Either::First(a) => a.into_response(media),
+            Either::Second(b) => b.into_response(media),
+        }
+    }
+}
+
+impl<M, N> Serialize for Either<M, N>
+where
+    M: Serialize,
+    N: Serialize,
+{
+    fn serialize<S: Serializer>(
+        &self,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        match self {
+            Self::First(f) => f.serialize(serializer),
+            Self::Second(s) => s.serialize(serializer),
+        }
+    }
 }
 
 impl<M: Default, N> Default for Either<M, N> {
@@ -50,27 +80,18 @@ where
 
 impl<T, M, N> payload::Extract<T> for Either<M, N>
 where
-    M: payload::Extract<T> + Send + Sync,
-    N: payload::Extract<T> + Send + Sync,
+    M: payload::Extract<T> + Send + Sync + 'static,
+    N: payload::Extract<T> + Send + Sync + 'static,
 {
-    type Rejection = axum_extra::either::Either<
-        <M as payload::Extract<T>>::Rejection,
-        <N as payload::Extract<T>>::Rejection,
-    >;
+    type Rejection = Either<M::Rejection, N::Rejection>;
 
     async fn extract(&self, req: Request) -> Result<T, Self::Rejection> {
         match self {
             Self::First(media) => {
-                media
-                    .extract(req)
-                    .map_err(axum_extra::either::Either::E1)
-                    .await
+                media.extract(req).map_err(Either::First).await
             }
             Self::Second(media) => {
-                media
-                    .extract(req)
-                    .map_err(axum_extra::either::Either::E2)
-                    .await
+                media.extract(req).map_err(Either::Second).await
             }
         }
     }
@@ -86,5 +107,18 @@ where
         let mut other = N::supported();
         supported.append(&mut other);
         supported
+    }
+}
+
+impl<M, N> IntoResponse for Either<M, N>
+where
+    M: IntoResponse,
+    N: IntoResponse,
+{
+    fn into_response(self) -> Response {
+        match self {
+            Self::First(f) => f.into_response(),
+            Self::Second(s) => s.into_response(),
+        }
     }
 }

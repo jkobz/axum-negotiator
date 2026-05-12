@@ -11,8 +11,8 @@ use std::task::{Context, Poll};
 use axum::RequestExt;
 use axum::extract::{FromRequestParts, Request};
 use axum::response::{IntoResponse, Response};
-use axum_extra::either::Either;
 use futures::future::{BoxFuture, TryFutureExt};
+use media::Either;
 pub use payload::Payload;
 
 /// # Content-Negotiation trait.
@@ -155,12 +155,10 @@ where
     I::Response: Send + Negotiate<M>,
     I::Error: Send + Negotiate<M>,
     M: media::Stateful<I::Response> + Send + Sync + 'static,
-    media::Extractor<M, E, X>: FromRequestParts<(), Rejection = media::extract::Rejection<E, X>>
-        + Send
-        + Sync
-        + 'static,
+    media::Extractor<M, E, X>:
+        FromRequestParts<(), Rejection = Either<E, X>> + Send + Sync + 'static,
 {
-    type Error = Either<I::Error, media::extract::Rejection<E, X>>;
+    type Error = Either<I::Error, Either<E, X>>;
     type Future = BoxFuture<'static, Result<Response, Self::Error>>;
     type Response = Response;
 
@@ -168,7 +166,7 @@ where
         &mut self,
         cx: &mut Context<'_>,
     ) -> Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx).map_err(Either::E1)
+        self.inner.poll_ready(cx).map_err(Either::First)
     }
 
     fn call(&mut self, req: R) -> Self::Future {
@@ -178,7 +176,7 @@ where
         Box::pin(async move {
             let media = req
                 .extract_parts::<media::Extractor<M, E, X>>()
-                .map_err(Either::E2)
+                .map_err(Either::Second)
                 .await?;
             inner
                 .call(req)
@@ -200,13 +198,11 @@ where
     I::Response: Send + Negotiate<M>,
     I::Error: Send + Negotiate<F>,
     M: media::Stateful<I::Response> + Send + Sync + 'static,
-    media::Extractor<M, E, X>: FromRequestParts<(), Rejection = media::extract::Rejection<E, X>>
-        + Send
-        + Sync
-        + 'static,
+    media::Extractor<M, E, X>:
+        FromRequestParts<(), Rejection = Either<E, X>> + Send + Sync + 'static,
     F: Clone + Send + Sync + 'static,
 {
-    type Error = Either<I::Error, media::extract::Rejection<E, X>>;
+    type Error = Either<I::Error, Either<E, X>>;
     type Future = BoxFuture<'static, Result<Response, Self::Error>>;
     type Response = Response;
 
@@ -214,7 +210,7 @@ where
         &mut self,
         cx: &mut Context<'_>,
     ) -> Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx).map_err(Either::E1)
+        self.inner.poll_ready(cx).map_err(Either::First)
     }
 
     fn call(&mut self, req: R) -> Self::Future {
@@ -225,7 +221,7 @@ where
         Box::pin(async move {
             let media = req
                 .extract_parts::<media::Extractor<M, E, X>>()
-                .map_err(Either::E2)
+                .map_err(Either::Second)
                 .await?;
             inner
                 .call(req)

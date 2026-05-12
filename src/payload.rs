@@ -7,10 +7,10 @@ use std::ops::{Deref, DerefMut};
 use axum::RequestExt;
 use axum::extract::{FromRequest, FromRequestParts, Request};
 use axum::response::IntoResponse;
-use axum_extra::either::Either;
 use futures::TryFutureExt;
 
-use crate::{header, media};
+use crate::header;
+use crate::media::{self, Either};
 
 /// # *Generic* **HTTP** request **body** payload.
 ///
@@ -85,18 +85,17 @@ where
     S: Send + Sync,
     T: Send + 'static,
     M: Extract<T> + media::Supported + Send + Sync + 'static,
-    E: From<media::Rejection<M>> + IntoResponse + 'static,
+    E: From<media::Rejection<M>> + IntoResponse + Send + Sync + 'static,
     X: From<<header::ContentType as FromRequestParts<()>>::Rejection>
+        + From<<M as Extract<T>>::Rejection>
         + IntoResponse
-        + 'static,
-    media::Extractor<M, E, X, header::ContentType>: FromRequestParts<(), Rejection = media::extract::Rejection<E, X>>
         + Send
         + Sync
         + 'static,
-    <M as Extract<T>>::Rejection: IntoResponse,
+    media::Extractor<M, E, X, header::ContentType>:
+        FromRequestParts<(), Rejection = Either<E, X>> + Send + Sync + 'static,
 {
-    type Rejection =
-        Either<media::extract::Rejection<E, X>, <M as Extract<T>>::Rejection>;
+    type Rejection = Either<E, X>;
 
     async fn from_request(
         mut req: Request,
@@ -104,11 +103,11 @@ where
     ) -> Result<Self, Self::Rejection> {
         let media = req
             .extract_parts::<media::Extractor<M, E, X, header::ContentType>>()
-            .map_err(Either::E1)
             .await?;
         media
             .extract(req)
-            .map_err(Either::E2)
+            .err_into::<X>()
+            .map_err(Either::Second)
             .map_ok(Self::new)
             .await
     }

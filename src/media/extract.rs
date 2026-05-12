@@ -5,11 +5,12 @@ use std::ops::Deref;
 
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
-use axum::response::{IntoResponse, Response};
+use axum::response::IntoResponse;
 use futures::TryFutureExt;
 
-use super::{Supported, Type};
-use crate::{header, media};
+use super::{Either, Supported, Type};
+use crate::header::{self};
+use crate::media;
 
 /// # **Media-type** extractor.
 ///
@@ -54,37 +55,19 @@ where
     H: FromRequestParts<S> + Into<Type> + Send + Sync,
     S: Send + Sync,
 {
-    type Rejection = Rejection<E, X>;
+    type Rejection = Either<E, X>;
 
     async fn from_request_parts(
         parts: &mut Parts,
         state: &S,
     ) -> Result<Self, Self::Rejection> {
         H::from_request_parts(parts, state)
-            .map_err(|err| Rejection::Header(err.into()))
+            .map_err(|err| Either::Second(err.into()))
             .and_then(|header| async {
                 M::try_from(&header.into())
                     .map(Self::new)
-                    .map_err(|err| Rejection::Media(err.into()))
+                    .map_err(|err| Either::First(err.into()))
             })
             .await
-    }
-}
-
-pub enum Rejection<E, X> {
-    Media(E),
-    Header(X),
-}
-
-impl<E, X> IntoResponse for Rejection<E, X>
-where
-    E: IntoResponse,
-    X: IntoResponse,
-{
-    fn into_response(self) -> Response {
-        match self {
-            Self::Header(err) => err.into_response(),
-            Self::Media(err) => err.into_response(),
-        }
     }
 }

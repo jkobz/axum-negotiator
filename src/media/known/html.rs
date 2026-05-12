@@ -2,7 +2,7 @@
 
 use askama::Template;
 use askama_web::WebTemplateExt;
-use axum::response::IntoResponse;
+use axum::response::{IntoResponse, Response};
 use mime::TEXT_HTML;
 
 use crate::media;
@@ -28,6 +28,20 @@ impl TryFrom<&media::Type> for Html {
 impl<D: Template> media::Stateful<D> for Html {
     fn with(&self, data: &D) -> impl IntoResponse {
         data.into_web_template()
+    }
+}
+
+impl<M, N> media::Stateful<media::Either<M, N>> for Html
+where
+    M: Template,
+    N: Template,
+{
+    #[allow(refining_impl_trait)]
+    fn with(&self, data: &media::Either<M, N>) -> Response {
+        match data {
+            media::Either::First(m) => m.into_web_template().into_response(),
+            media::Either::Second(n) => n.into_web_template().into_response(),
+        }
     }
 }
 
