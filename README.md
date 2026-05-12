@@ -1,12 +1,12 @@
-<a href="https://crates.io/crates/axum-content-negotiation">
-    <img src="https://img.shields.io/crates/v/axum-content-negotiation.svg" />
+<a href="https://crates.io/crates/axum-negotiator">
+    <img src="https://img.shields.io/crates/v/axum-negotiator.svg" />
 </a>
 
 # **Content-negotiation** utilities.
 
 ```toml
 [dependencies]
-axum-content-negotiation = "1.0.0"
+:cn
 ```
 
 ## Motivation
