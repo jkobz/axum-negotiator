@@ -1,17 +1,27 @@
-//! Provides [Either] **media-type**.
+//! Provides [Either] *opaque* **type**.
 
 use axum::extract::Request;
 use axum::response::{IntoResponse, Response};
 use futures::TryFutureExt;
-use serde::{Serialize, Serializer};
 
 use super::{Rejection, Stateful, Supported, Type};
 use crate::{Negotiate, payload};
 
+/// **Either-this-or-that** container.
+///
+/// Encapsulates both `A` and `B` types into a single
+/// container type. Designed to work with **media-types** in mind,
+/// however, can be used to work with any combination of types,
+/// given they satisfy certain trait bounds:
+///
+/// - [Supported] and [Stateful] trait for **media-type** usage
+/// - [IntoResponse] trait for extractor **rejection** usage
+/// - [Negotiate] for **content-negotiation** usage
+/// - [payload::Extract] for **payload-extraction** usage
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Either<M, N> {
-    First(M),
-    Second(N),
+pub enum Either<A, B> {
+    First(A),
+    Second(B),
 }
 
 impl<M, A, B> Negotiate<M> for Either<A, B>
@@ -27,47 +37,31 @@ where
     }
 }
 
-impl<M, N> Serialize for Either<M, N>
-where
-    M: Serialize,
-    N: Serialize,
-{
-    fn serialize<S: Serializer>(
-        &self,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
-        match self {
-            Self::First(f) => f.serialize(serializer),
-            Self::Second(s) => s.serialize(serializer),
-        }
-    }
-}
-
-impl<M: Default, N> Default for Either<M, N> {
+impl<A: Default, B> Default for Either<A, B> {
     fn default() -> Self {
-        Either::First(M::default())
+        Either::First(A::default())
     }
 }
 
-impl<'a, M, N> TryFrom<&'a Type> for Either<M, N>
+impl<'a, A, B> TryFrom<&'a Type> for Either<A, B>
 where
-    M: TryFrom<&'a Type> + Supported,
-    N: TryFrom<&'a Type> + Supported,
+    A: TryFrom<&'a Type> + Supported,
+    B: TryFrom<&'a Type> + Supported,
 {
     type Error = Rejection<Self>;
 
     fn try_from(value: &'a Type) -> Result<Self, Self::Error> {
-        M::try_from(value)
+        A::try_from(value)
             .map(Either::First)
-            .or_else(|_| N::try_from(value).map(Either::Second))
+            .or_else(|_| B::try_from(value).map(Either::Second))
             .map_err(|_| Rejection::new(value))
     }
 }
 
-impl<M, N, D> Stateful<D> for Either<M, N>
+impl<A, B, D> Stateful<D> for Either<A, B>
 where
-    M: Stateful<D>,
-    N: Stateful<D>,
+    A: Stateful<D>,
+    B: Stateful<D>,
 {
     #[allow(refining_impl_trait)]
     fn with(&self, data: &D) -> Response {
@@ -78,12 +72,12 @@ where
     }
 }
 
-impl<T, M, N> payload::Extract<T> for Either<M, N>
+impl<T, A, B> payload::Extract<T> for Either<A, B>
 where
-    M: payload::Extract<T> + Send + Sync + 'static,
-    N: payload::Extract<T> + Send + Sync + 'static,
+    A: payload::Extract<T> + Send + Sync + 'static,
+    B: payload::Extract<T> + Send + Sync + 'static,
 {
-    type Rejection = Either<M::Rejection, N::Rejection>;
+    type Rejection = Either<A::Rejection, B::Rejection>;
 
     async fn extract(&self, req: Request) -> Result<T, Self::Rejection> {
         match self {
@@ -97,23 +91,23 @@ where
     }
 }
 
-impl<M, N> Supported for Either<M, N>
+impl<A, B> Supported for Either<A, B>
 where
-    M: Supported,
-    N: Supported,
+    A: Supported,
+    B: Supported,
 {
     fn supported() -> Vec<Type> {
-        let mut supported = M::supported();
-        let mut other = N::supported();
+        let mut supported = A::supported();
+        let mut other = B::supported();
         supported.append(&mut other);
         supported
     }
 }
 
-impl<M, N> IntoResponse for Either<M, N>
+impl<A, B> IntoResponse for Either<A, B>
 where
-    M: IntoResponse,
-    N: IntoResponse,
+    A: IntoResponse,
+    B: IntoResponse,
 {
     fn into_response(self) -> Response {
         match self {

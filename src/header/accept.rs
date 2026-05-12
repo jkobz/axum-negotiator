@@ -1,6 +1,5 @@
 //! Provides [Accept] **HTTP** header.
 
-use std::cmp::Ordering;
 use std::fmt;
 use std::iter::once;
 use std::ops::Deref;
@@ -85,7 +84,10 @@ impl Header for Accept {
         let best = value
             .split(",")
             .filter_map(Self::parse_item)
-            .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal))
+            .fold(None, |best, curr| match best {
+                None => Some(curr),
+                Some(prev) => curr.1.gt(&prev.1).then_some(curr).or(Some(prev)),
+            })
             .map(|(mime, _)| mime)
             .ok_or_else(Error::invalid)?;
         Ok(Self(best))

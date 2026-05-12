@@ -15,7 +15,7 @@ use futures::future::{BoxFuture, TryFutureExt};
 use media::Either;
 pub use payload::Payload;
 
-/// # Content-Negotiation trait.
+/// # Content-negotiation trait.
 ///
 /// Provides [into_response] method to turn `self`
 /// into [Response] via *generic* `media` **media-type**.
@@ -35,7 +35,7 @@ where
     }
 }
 
-/// # Content-Negotiation **middleware**.
+/// # Content-negotiation **middleware**.
 ///
 /// See [Service].
 #[derive(Clone)]
