@@ -4,14 +4,14 @@ pub mod header;
 pub mod media;
 pub mod payload;
 
-use std::marker::PhantomData;
 use std::convert::Infallible;
+use std::marker::PhantomData;
 use std::mem;
 use std::task::{Context, Poll};
 
 use axum::RequestExt;
 use axum::extract::{FromRequestParts, Request};
-use axum::response::{IntoResponse, Response, Redirect};
+use axum::response::{IntoResponse, Redirect, Response};
 use futures::future::{BoxFuture, TryFutureExt};
 use media::Either;
 pub use payload::Payload;

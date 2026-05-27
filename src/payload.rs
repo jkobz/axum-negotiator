@@ -5,7 +5,9 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 use axum::RequestExt;
-use axum::extract::{FromRequest, FromRequestParts, Request};
+use axum::extract::{
+    FromRequest, FromRequestParts, OptionalFromRequest, Request,
+};
 use axum::response::IntoResponse;
 use futures::TryFutureExt;
 
@@ -80,6 +82,12 @@ where
     }
 }
 
+impl<T: Default, M, E, X> Default for Payload<T, M, E, X> {
+    fn default() -> Self {
+        Self::new(T::default())
+    }
+}
+
 impl<S, T, M, E, X> FromRequest<S> for Payload<T, M, E, X>
 where
     S: Send + Sync,
@@ -110,6 +118,35 @@ where
             .map_err(Either::Second)
             .map_ok(Self::new)
             .await
+    }
+}
+
+impl<S, T, M, E, X> OptionalFromRequest<S> for Payload<T, M, E, X>
+where
+    S: Send + Sync,
+    T: Send + 'static,
+    M: Extract<T> + media::Supported + Send + Sync + 'static,
+    E: From<media::Rejection<M>> + IntoResponse + Send + Sync + 'static,
+    X: From<<header::ContentType as FromRequestParts<()>>::Rejection>
+        + From<<M as Extract<T>>::Rejection>
+        + IntoResponse
+        + Send
+        + Sync
+        + 'static,
+    media::Extractor<M, E, X, header::ContentType>:
+        FromRequestParts<(), Rejection = Either<E, X>> + Send + Sync + 'static,
+{
+    type Rejection = Either<E, X>;
+
+    async fn from_request(
+        mut req: Request,
+        _: &S,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        let media = req
+            .extract_parts::<media::Extractor<M, E, X, header::ContentType>>()
+            .await?;
+        let res = media.extract(req).map_ok(Self::new).await;
+        Ok(res.ok())
     }
 }
 
