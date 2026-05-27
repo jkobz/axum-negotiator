@@ -5,12 +5,13 @@ pub mod media;
 pub mod payload;
 
 use std::marker::PhantomData;
+use std::convert::Infallible;
 use std::mem;
 use std::task::{Context, Poll};
 
 use axum::RequestExt;
 use axum::extract::{FromRequestParts, Request};
-use axum::response::{IntoResponse, Response};
+use axum::response::{IntoResponse, Response, Redirect};
 use futures::future::{BoxFuture, TryFutureExt};
 use media::Either;
 pub use payload::Payload;
@@ -32,6 +33,18 @@ where
 {
     fn into_response(&self, media: &M) -> Response {
         (self.status(), media.with(self)).into_response()
+    }
+}
+
+impl Negotiate<media::Html> for Redirect {
+    fn into_response(&self, _: &media::Html) -> Response {
+        self.clone().into_response()
+    }
+}
+
+impl<M> Negotiate<M> for Infallible {
+    fn into_response(&self, _: &M) -> Response {
+        match *self {}
     }
 }
 
@@ -154,7 +167,6 @@ where
     I::Future: Send + 'static,
     I::Response: Send + Negotiate<M>,
     I::Error: Send + Negotiate<M>,
-    M: media::Stateful<I::Response> + Send + Sync + 'static,
     media::Extractor<M, E, X>:
         FromRequestParts<(), Rejection = Either<E, X>> + Send + Sync + 'static,
 {
@@ -197,7 +209,6 @@ where
     I::Future: Send + 'static,
     I::Response: Send + Negotiate<M>,
     I::Error: Send + Negotiate<F>,
-    M: media::Stateful<I::Response> + Send + Sync + 'static,
     media::Extractor<M, E, X>:
         FromRequestParts<(), Rejection = Either<E, X>> + Send + Sync + 'static,
     F: Clone + Send + Sync + 'static,
